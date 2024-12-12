@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>3D Model Gesture Interactions</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; }
+    </style>
+    
+    <!-- Gesture Detector Script -->
+    <script>
+      AFRAME.registerComponent('gesture-detector', {
+        init: function () {
+          var element = document.querySelector('body');
+          var hammer = new Hammer(element);
+
+          hammer.get('pinch').set({ enable: true });
+          hammer.get('rotate').set({ enable: true });
+
+          this.isPinching = false;
+          this.isRotating = false;
+
+          hammer.on('pinchstart', () => this.isPinching = true);
+          hammer.on('pinchend', () => this.isPinching = false);
+          
+          hammer.on('rotatestart', () => this.isRotating = true);
+          hammer.on('rotateend', () => this.isRotating = false);
+        }
+      });
+    </script>
+
+    <!-- Gesture Handler Script -->
+    <script>
+      AFRAME.registerComponent('gesture-handler', {
+        schema: {
+          enabled: { default: true },
+          rotationFactor: { default: 5 },
+          scaleFactor: { default: 1 }
+        },
+
+        init: function () {
+          this.handleScale = this.handleScale.bind(this)
+          this.handleRotate = this.handleRotate.bind(this)
+
+          this.isVisible = false;
+          this.initialScale = this.el.getAttribute('scale')
+
+          this.el.addEventListener('markerFound', () => {
+            this.isVisible = true;
+          })
+
+          this.el.addEventListener('markerLost', () => {
+            this.isVisible = false;
+          })
+
+          const hammer = new Hammer(this.el.sceneEl);
+
+          hammer.get('pinch').set({ enable: true });
+          hammer.get('rotate').set({ enable: true });
+
+          hammer.on('pinchstart', this.handleScale);
+          hammer.on('pinch', this.handleScale);
+          hammer.on('rotatestart', this.handleRotate);
+          hammer.on('rotate', this.handleRotate);
+        },
+
+        handleScale: function (event) {
+          if (!this.isVisible) return;
+
+          const currentScale = this.el.getAttribute('scale');
+          const scaleFactor = event.scale;
+          
+          // Limit scale to prevent extreme scaling
+          const newScale = Math.max(0.01, Math.min(10, this.initialScale.x * scaleFactor));
+          
+          this.el.setAttribute('scale', {
+            x: newScale,
+            y: newScale,
+            z: newScale
+          });
+        },
+
+        handleRotate: function (event) {
+          if (!this.isVisible) return;
+
+          const currentRotation = this.el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+          
+          this.el.setAttribute('rotation', {
+            x: currentRotation.x,
+            y: currentRotation.y + event.rotation,
+            z: currentRotation.z
+          });
+        }
+      });
+    </script>
+
+    <!-- Hammer.js for gesture recognition -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  </head>
+  <body>
+    <a-scene
+      arjs
+      embedded
+      renderer="logarithmicDepthBuffer: true;"
+      vr-mode-ui="enabled: false"
+      gesture-detector
+      id="scene"
+    >
+      <a-assets>
+        <a-asset-item
+          id="bowser"
+          src="https://PreethamReddy333.github.io/AR/Box Combo w_ extra sauce.glb"
+        >
+        </a-asset-item>
+      </a-assets>
+      <a-marker
+        preset="hiro"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+        id="markerA"
+      >
+        <a-entity
+          id="bowser-model"
+          gltf-model="#bowser"
+          position="0 -0.5 0"
+          scale="5 5 5"
+          class="clickable"
+          gesture-handler
+        >
+        </a-entity>
+      </a-marker>
+      <a-entity camera></a-entity>
+    </a-scene>
+  </body>
+</html>
